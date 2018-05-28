@@ -492,6 +492,13 @@ if(ENABLE_SYSTEM_TESTING)
             set(OPT_INCLUDES_ ${GPSTK_INCLUDE_DIRS} ${GPSTK_INCLUDE_DIRS}/gpstk)
             add_system_test(obs_gps_l1_system_test)
             add_system_test(obs_system_test)
+
+            ## TRACKING_SENSITIVITY
+            set(OPT_LIBS_ ${GFlags_LIBS} ${GLOG_LIBRARIES} ${GTEST_LIBRARIES}
+                          ${gpstk_libs} gnss_sp_libs gnss_rx gnss_system_parameters
+                          ${ARMADILLO_LIBRARIES} signal_processing_testing_lib )
+            set(OPT_INCLUDES_ ${LIST_INCLUDE_DIRS} ${GPSTK_INCLUDE_DIRS} ${GPSTK_INCLUDE_DIRS}/gpstk ${ARMADILLO_INCLUDE_DIRS})
+            add_system_test(tracking_sensitivity)
         endif(GPSTK_FOUND OR OWN_GPSTK)
     else(ENABLE_SYSTEM_TESTING_EXTRA)
         # Avoid working with old executables if they were switched ON and then OFF
