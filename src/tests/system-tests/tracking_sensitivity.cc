@@ -56,7 +56,9 @@
 #include <thread>
 
 DEFINE_string(config_file_trk, std::string(""), "File containing the configuration parameters for the Tracking Sensitivity test.");
-DEFINE_int32(fs_in, 4000000, "Sampling rate, in Samples/s");
+DEFINE_string(config_data_trk, std::string("/Users/carlesfernandez/Documents/data_samples/Spirent/ground/static/180417100529.A.gns"), "File containing the data for the Tracking Sensitivity test.");
+//DEFINE_int32(fs_in, 30690000, "Sampling rate, in Samples/s");
+DEFINE_int32(fs_in, 30000000, "Sampling rate, in Samples/s");
 
 concurrent_queue<Gps_Acq_Assist> global_gps_acq_assist_queue;
 concurrent_map<Gps_Acq_Assist> global_gps_acq_assist_map;
@@ -101,17 +103,17 @@ public:
     const int number_of_channels = 8;
     const int in_acquisition = 1;
 
-    const float threshold = 0.01;
+    const float threshold = 0.00011;
     const float doppler_max = 8000.0;
-    const float doppler_step = 500.0;
+    const float doppler_step = 250.0;
     const int max_dwells = 1;
     const int tong_init_val = 2;
     const int tong_max_val = 10;
     const int tong_max_dwells = 30;
-    const int coherent_integration_time_ms = 1;
+    const int coherent_integration_time_ms = 2;
 
-    const float pll_bw_hz = 30.0;
-    const float dll_bw_hz = 4.0;
+    const float pll_bw_hz = 20.0;
+    const float dll_bw_hz = 1.0;
     const float early_late_space_chips = 0.5;
 
     const int display_rate_ms = 500;
@@ -129,33 +131,22 @@ void TrackingSensitivityTest::config_1()
 
     config->set_property("GNSS-SDR.internal_fs_sps", std::to_string(FLAGS_fs_in));
 
-    // Set the assistance system parameters
-    config->set_property("GNSS-SDR.SUPL_gps_ephemeris_server", "supl.google.com");
-    config->set_property("GNSS-SDR.SUPL_gps_ephemeris_port", std::to_string(7275));
-    config->set_property("GNSS-SDR.SUPL_gps_acquisition_server", "supl.google.com");
-    config->set_property("GNSS-SDR.SUPL_gps_acquisition_port", std::to_string(7275));
-    config->set_property("GNSS-SDR.SUPL_MCC", std::to_string(244));
-    config->set_property("GNSS-SDR.SUPL_MNS", std::to_string(5));
-    config->set_property("GNSS-SDR.SUPL_LAC", "0x59e2");
-    config->set_property("GNSS-SDR.SUPL_CI", "0x31b0");
-
     // Set the Signal Source
-    config->set_property("SignalSource.item_type", "cshort");
-    config->set_property("SignalSource.implementation", "UHD_Signal_Source");
-    config->set_property("SignalSource.freq", std::to_string(central_freq));
+    config->set_property("SignalSource.implementation", "Spir_GSS6450_File_Signal_Source");
     config->set_property("SignalSource.sampling_frequency", std::to_string(FLAGS_fs_in));
-    config->set_property("SignalSource.gain", std::to_string(gain_dB));
-    //config->set_property("SignalSource.subdevice", FLAGS_subdevice);
-    config->set_property("SignalSource.samples", std::to_string(FLAGS_fs_in * FLAGS_duration));
-    //config->set_property("SignalSource.device_address", FLAGS_device_address);
+    config->set_property("SignalSource.samples", "0");
+    config->set_property("SignalSource.filename", FLAGS_config_data_trk);
+    config->set_property("SignalSource.total_channels", "2");
+    config->set_property("SignalSource.sel_ch", "1");
+    config->set_property("SignalSource.adc_bits", "4");
 
     // Set the Signal Conditioner
-    config->set_property("SignalConditioner.implementation", "Signal_Conditioner");
+    config->set_property("SignalConditioner.implementation", "Pass_Through");
     config->set_property("DataTypeAdapter.implementation", "Pass_Through");
-    config->set_property("DataTypeAdapter.item_type", "cshort");
-    config->set_property("InputFilter.implementation", "Fir_Filter");
+    config->set_property("DataTypeAdapter.item_type", "gr_complex");
+    config->set_property("InputFilter.implementation", "Pass_Through");
     config->set_property("InputFilter.dump", "false");
-    config->set_property("InputFilter.input_item_type", "cshort");
+    config->set_property("InputFilter.input_item_type", "gr_complex");
     config->set_property("InputFilter.output_item_type", "gr_complex");
     config->set_property("InputFilter.taps_item_type", "float");
     config->set_property("InputFilter.number_of_taps", std::to_string(number_of_taps));
@@ -177,8 +168,8 @@ void TrackingSensitivityTest::config_1()
     config->set_property("Resampler.implementation", "Pass_Through");
     config->set_property("Resampler.dump", "false");
     config->set_property("Resampler.item_type", "gr_complex");
-    config->set_property("Resampler.sample_freq_in", std::to_string(FLAGS_fs_in));
-    config->set_property("Resampler.sample_freq_out", std::to_string(FLAGS_fs_in));
+    //config->set_property("Resampler.sample_freq_in", std::to_string(FLAGS_fs_in));
+    //config->set_property("Resampler.sample_freq_out", std::to_string(FLAGS_fs_in));
 
     // Set the number of Channels
     config->set_property("Channels_1C.count", std::to_string(number_of_channels));
@@ -186,9 +177,8 @@ void TrackingSensitivityTest::config_1()
     config->set_property("Channel.signal", "1C");
 
     // Set Acquisition
-    config->set_property("Acquisition_1C.implementation", "GPS_L1_CA_PCPS_Tong_Acquisition");
+    config->set_property("Acquisition_1C.implementation", "GPS_L1_CA_PCPS_Acquisition");
     config->set_property("Acquisition_1C.item_type", "gr_complex");
-    config->set_property("Acquisition_1C.if", std::to_string(zero));
     config->set_property("Acquisition_1C.coherent_integration_time_ms", std::to_string(coherent_integration_time_ms));
     config->set_property("Acquisition_1C.threshold", std::to_string(threshold));
     config->set_property("Acquisition_1C.doppler_max", std::to_string(doppler_max));
@@ -202,7 +192,6 @@ void TrackingSensitivityTest::config_1()
     // Set Tracking
     config->set_property("Tracking_1C.implementation", "GPS_L1_CA_DLL_PLL_Tracking");
     config->set_property("Tracking_1C.item_type", "gr_complex");
-    config->set_property("Tracking_1C.if", std::to_string(zero));
     config->set_property("Tracking_1C.dump", "false");
     config->set_property("Tracking_1C.dump_filename", "./tracking_ch_");
     config->set_property("Tracking_1C.pll_bw_hz", std::to_string(pll_bw_hz));
@@ -449,6 +438,7 @@ TEST_F(TrackingSensitivityTest, GPSL1)
     std::shared_ptr<ControlThread> control_thread;
     if (FLAGS_config_file_trk.empty())
         {
+            config_1();
             control_thread = std::make_shared<ControlThread>(config);
         }
     else
