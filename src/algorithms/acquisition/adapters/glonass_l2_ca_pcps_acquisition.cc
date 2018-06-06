@@ -57,8 +57,6 @@ GlonassL2CaPcpsAcquisition::GlonassL2CaPcpsAcquisition(
     long fs_in_deprecated = configuration_->property("GNSS-SDR.internal_fs_hz", 2048000);
     fs_in_ = configuration_->property("GNSS-SDR.internal_fs_sps", fs_in_deprecated);
     acq_parameters.fs_in = fs_in_;
-    if_ = configuration_->property(role + ".if", 0);
-    acq_parameters.freq = if_;
     dump_ = configuration_->property(role + ".dump", false);
     acq_parameters.dump = dump_;
     blocking_ = configuration_->property(role + ".blocking", true);
@@ -119,6 +117,14 @@ GlonassL2CaPcpsAcquisition::GlonassL2CaPcpsAcquisition(
     threshold_ = 0.0;
     doppler_step_ = 0;
     gnss_synchro_ = 0;
+    if (in_streams_ > 1)
+        {
+            LOG(ERROR) << "This implementation only supports one input stream";
+        }
+    if (out_streams_ > 0)
+        {
+            LOG(ERROR) << "This implementation does not provide an output stream";
+        }
 }
 
 

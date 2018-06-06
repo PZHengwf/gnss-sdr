@@ -255,7 +255,6 @@ int StaticPositionSystemTest::configure_receiver()
             const float band1_error = 1.0;
             const float band2_error = 1.0;
             const int grid_density = 16;
-            const int decimation_factor = 1;
 
             const float zero = 0.0;
             const int number_of_channels = 8;
@@ -278,7 +277,7 @@ int StaticPositionSystemTest::configure_receiver()
             const int extend_correlation_ms = 1;
 
             const int display_rate_ms = 500;
-            const int output_rate_ms = 500;
+            const int output_rate_ms = 10;
 
             config->set_property("GNSS-SDR.internal_fs_sps", std::to_string(sampling_rate_internal));
 
@@ -374,6 +373,7 @@ int StaticPositionSystemTest::configure_receiver()
 
             // Set PVT
             config->set_property("PVT.implementation", "RTKLIB_PVT");
+            config->set_property("PVT.positioning_mode", "PPP_Static");
             config->set_property("PVT.output_rate_ms", std::to_string(output_rate_ms));
             config->set_property("PVT.display_rate_ms", std::to_string(display_rate_ms));
             config->set_property("PVT.dump_filename", "./PVT");
@@ -385,7 +385,6 @@ int StaticPositionSystemTest::configure_receiver()
             config->set_property("PVT.rtcm_dump_devname", "/dev/pts/1");
             config->set_property("PVT.dump", "false");
             config->set_property("PVT.rinex_version", std::to_string(2));
-            config->set_property("PVT.positioning_mode", "PPP_Static");
             config->set_property("PVT.iono_model", "OFF");
             config->set_property("PVT.trop_model", "OFF");
             config->set_property("PVT.AR_GPS", "PPP-AR");
