@@ -57,8 +57,8 @@
 
 DEFINE_string(config_file_trk, std::string(""), "File containing the configuration parameters for the Tracking Sensitivity test.");
 DEFINE_string(config_data_trk, std::string("/Users/carlesfernandez/Documents/data_samples/Spirent/ground/static/180417100529.A.gns"), "File containing the data for the Tracking Sensitivity test.");
-//DEFINE_int32(fs_in, 30690000, "Sampling rate, in Samples/s");
-DEFINE_int32(fs_in, 30000000, "Sampling rate, in Samples/s");
+DEFINE_int32(fs_in, 3836250, "Sampling rate, in Samples/s");
+
 
 concurrent_queue<Gps_Acq_Assist> global_gps_acq_assist_queue;
 concurrent_map<Gps_Acq_Assist> global_gps_acq_assist_map;
@@ -85,12 +85,14 @@ public:
 
     const double central_freq = 1575420000.0;
     const double gain_dB = 40.0;
+    const int sampling_frequency = 30690000;
+    const int bytes_to_skip = 8620;
 
-    const int number_of_taps = 11;
+    const int number_of_taps = 5;
     const int number_of_bands = 2;
     const float band1_begin = 0.0;
-    const float band1_end = 0.48;
-    const float band2_begin = 0.52;
+    const float band1_end = 0.45;
+    const float band2_begin = 0.55;
     const float band2_end = 1.0;
     const float ampl1_begin = 1.0;
     const float ampl1_end = 1.0;
@@ -100,25 +102,22 @@ public:
     const float band2_error = 1.0;
     const int grid_density = 16;
     const float zero = 0.0;
+    const int decimation_factor = 8;
+
     const int number_of_channels = 8;
     const int in_acquisition = 1;
 
-    const float threshold = 0.00011;
-    const float doppler_max = 8000.0;
-    const float doppler_step = 250.0;
-    const int max_dwells = 1;
-    const int tong_init_val = 2;
-    const int tong_max_val = 10;
-    const int tong_max_dwells = 30;
-    const int coherent_integration_time_ms = 2;
+    const float threshold = 17;
+    const float doppler_max = 5000.0;
+    const float doppler_step = 125.0;
+    const int coherent_integration_time_ms = 1;
 
-    const float pll_bw_hz = 20.0;
-    const float dll_bw_hz = 1.0;
+    const float pll_bw_hz = 45.0;
+    const float dll_bw_hz = 3.0;
     const float early_late_space_chips = 0.5;
 
     const int display_rate_ms = 500;
-    const int output_rate_ms = 100;
-    const int averaging_depth = 10;
+    const int output_rate_ms = 10;
 
     const int num_prn_gps = 33;
     const int num_prn_gal = 31;
@@ -133,18 +132,19 @@ void TrackingSensitivityTest::config_1()
 
     // Set the Signal Source
     config->set_property("SignalSource.implementation", "Spir_GSS6450_File_Signal_Source");
-    config->set_property("SignalSource.sampling_frequency", std::to_string(FLAGS_fs_in));
+    config->set_property("SignalSource.sampling_frequency", std::to_string(sampling_frequency));
     config->set_property("SignalSource.samples", "0");
     config->set_property("SignalSource.filename", FLAGS_config_data_trk);
     config->set_property("SignalSource.total_channels", "2");
     config->set_property("SignalSource.sel_ch", "1");
     config->set_property("SignalSource.adc_bits", "4");
+    config->set_property("SignalSource.bytes_to_skip", std::to_string(bytes_to_skip));
 
     // Set the Signal Conditioner
-    config->set_property("SignalConditioner.implementation", "Pass_Through");
+    config->set_property("SignalConditioner.implementation", "Signal_Conditioner");
     config->set_property("DataTypeAdapter.implementation", "Pass_Through");
     config->set_property("DataTypeAdapter.item_type", "gr_complex");
-    config->set_property("InputFilter.implementation", "Pass_Through");
+    config->set_property("InputFilter.implementation", "Freq_Xlating_Fir_Filter");
     config->set_property("InputFilter.dump", "false");
     config->set_property("InputFilter.input_item_type", "gr_complex");
     config->set_property("InputFilter.output_item_type", "gr_complex");
@@ -161,15 +161,14 @@ void TrackingSensitivityTest::config_1()
     config->set_property("InputFilter.ampl2_end", std::to_string(ampl2_end));
     config->set_property("InputFilter.band1_error", std::to_string(band1_error));
     config->set_property("InputFilter.band2_error", std::to_string(band2_error));
-    config->set_property("InputFilter.filter_type", "bandpass");
+    config->set_property("InputFilter.filter_type", "lowpass");
     config->set_property("InputFilter.grid_density", std::to_string(grid_density));
-    config->set_property("InputFilter.sampling_frequency", std::to_string(FLAGS_fs_in));
+    config->set_property("InputFilter.sampling_frequency", std::to_string(sampling_frequency));
+    config->set_property("InputFilter.decimation_factor", std::to_string(decimation_factor));
     config->set_property("InputFilter.IF", std::to_string(zero));
     config->set_property("Resampler.implementation", "Pass_Through");
     config->set_property("Resampler.dump", "false");
     config->set_property("Resampler.item_type", "gr_complex");
-    //config->set_property("Resampler.sample_freq_in", std::to_string(FLAGS_fs_in));
-    //config->set_property("Resampler.sample_freq_out", std::to_string(FLAGS_fs_in));
 
     // Set the number of Channels
     config->set_property("Channels_1C.count", std::to_string(number_of_channels));
@@ -183,11 +182,7 @@ void TrackingSensitivityTest::config_1()
     config->set_property("Acquisition_1C.threshold", std::to_string(threshold));
     config->set_property("Acquisition_1C.doppler_max", std::to_string(doppler_max));
     config->set_property("Acquisition_1C.doppler_step", std::to_string(doppler_step));
-    config->set_property("Acquisition_1C.bit_transition_flag", "false");
-    config->set_property("Acquisition_1C.max_dwells", std::to_string(max_dwells));
-    config->set_property("Acquisition_1C.tong_init_val", std::to_string(tong_init_val));
-    config->set_property("Acquisition_1C.tong_max_val", std::to_string(tong_max_val));
-    config->set_property("Acquisition_1C.tong_max_dwells", std::to_string(tong_max_dwells));
+    config->set_property("Acquisition_1C.use_CFAR_algorithm", "false");
 
     // Set Tracking
     config->set_property("Tracking_1C.implementation", "GPS_L1_CA_DLL_PLL_Tracking");
@@ -209,6 +204,7 @@ void TrackingSensitivityTest::config_1()
 
     // Set PVT
     config->set_property("PVT.implementation", "RTKLIB_PVT");
+    config->set_property("PVT.positioning_mode", "Single");
     config->set_property("PVT.output_rate_ms", std::to_string(output_rate_ms));
     config->set_property("PVT.display_rate_ms", std::to_string(display_rate_ms));
     config->set_property("PVT.dump_filename", "./PVT");
