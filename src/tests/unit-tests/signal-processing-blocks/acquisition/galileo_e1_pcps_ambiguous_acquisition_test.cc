@@ -50,6 +50,7 @@
 #include "gnuplot_i.h"
 #include "test_flags.h"
 #include "acquisition_dump_reader.h"
+#include "optimize_fft_size.h"
 #include "galileo_e1_pcps_ambiguous_acquisition.h"
 #include "Galileo_E1.h"
 
@@ -175,7 +176,7 @@ void GalileoE1PcpsAmbiguousAcquisitionTest::plot_grid()
     unsigned int sat = static_cast<unsigned int>(gnss_synchro.PRN);
 
     unsigned int samples_per_code = static_cast<unsigned int>(round(4000000 / (Galileo_E1_CODE_CHIP_RATE_HZ / Galileo_E1_B_CODE_LENGTH_CHIPS)));  // !!
-    acquisition_dump_reader acq_dump(basename, sat, doppler_max, doppler_step, samples_per_code);
+    acquisition_dump_reader acq_dump(basename, sat, doppler_max, doppler_step, optimize_fft_size(samples_per_code));
 
     if (!acq_dump.read_binary_acq()) std::cout << "Error reading files" << std::endl;
 

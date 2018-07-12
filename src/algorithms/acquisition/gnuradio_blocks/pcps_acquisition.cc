@@ -34,6 +34,7 @@
  */
 
 #include "pcps_acquisition.h"
+#include "optimize_fft_size.h"
 #include "GPS_L1_CA.h"         // for GPS_TWO_PI
 #include "GLONASS_L1_L2_CA.h"  // for GLONASS_TWO_PI"
 #include <glog/logging.h>
@@ -73,7 +74,7 @@ pcps_acquisition::pcps_acquisition(const Acq_Conf& conf_) : gr::block("pcps_acqu
         {
             d_fft_size = d_consumed_samples * 2;
         }
-    //d_fft_size = next power of two?  ////
+    d_fft_size = optimize_fft_size(d_fft_size);
     d_mag = 0;
     d_input_power = 0.0;
     d_num_doppler_bins = 0;
@@ -92,7 +93,7 @@ pcps_acquisition::pcps_acquisition(const Acq_Conf& conf_) : gr::block("pcps_acqu
         }
 
     // COD:
-    // Experimenting with the overlap/save technique for handling bit trannsitions
+    // Experimenting with the overlap/save technique for handling bit transitions
     // The problem: Circular correlation is asynchronous with the received code.
     // In effect the first code phase used in the correlation is the current
     // estimate of the code phase at the start of the input buffer. If this is 1/2
@@ -132,6 +133,7 @@ pcps_acquisition::pcps_acquisition(const Acq_Conf& conf_) : gr::block("pcps_acqu
         {
             d_data_buffer_sc = nullptr;
         }
+
     grid_ = arma::fmat();
     d_step_two = false;
     d_dump_number = 0;
@@ -342,8 +344,8 @@ void pcps_acquisition::set_state(int state)
 
 void pcps_acquisition::send_positive_acquisition()
 {
-    // 6.1- Declare positive acquisition using a message port
-    //0=STOP_CHANNEL 1=ACQ_SUCCEES 2=ACQ_FAIL
+    // Declare positive acquisition using a message port
+    // 0=STOP_CHANNEL 1=ACQ_SUCCEES 2=ACQ_FAIL
     DLOG(INFO) << "positive acquisition"
                << ", satellite " << d_gnss_synchro->System << " " << d_gnss_synchro->PRN
                << ", sample_stamp " << d_sample_counter
@@ -360,8 +362,8 @@ void pcps_acquisition::send_positive_acquisition()
 
 void pcps_acquisition::send_negative_acquisition()
 {
-    // 6.2- Declare negative acquisition using a message port
-    //0=STOP_CHANNEL 1=ACQ_SUCCEES 2=ACQ_FAIL
+    // Declare negative acquisition using a message port
+    // 0=STOP_CHANNEL 1=ACQ_SUCCEES 2=ACQ_FAIL
     DLOG(INFO) << "negative acquisition"
                << ", satellite " << d_gnss_synchro->System << " " << d_gnss_synchro->PRN
                << ", sample_stamp " << d_sample_counter
@@ -643,7 +645,7 @@ void pcps_acquisition::acquisition_core(unsigned long int samp_count)
 
                     volk_32fc_x2_multiply_32fc(d_fft_if->get_inbuf(), in, d_grid_doppler_wipeoffs_step_two[doppler_index], d_fft_size);
 
-                    // 3- Perform the FFT-based convolution  (parallel time search)
+                    // Perform the FFT-based convolution  (parallel time search)
                     // Compute the FFT of the carrier wiped--off incoming signal
                     d_fft_if->execute();
 
@@ -665,7 +667,7 @@ void pcps_acquisition::acquisition_core(unsigned long int samp_count)
                             // Normalize the maximum value to correct the scale factor introduced by FFTW
                             magt = d_magnitude[indext] / (fft_normalization_factor * fft_normalization_factor);
                         }
-                    // 4- record the maximum peak and the associated synchronization parameters
+                    // Record the maximum peak and the associated synchronization parameters
                     if (d_mag < magt)
                         {
                             d_mag = magt;
@@ -691,7 +693,7 @@ void pcps_acquisition::acquisition_core(unsigned long int samp_count)
                                     d_gnss_synchro->Acq_doppler_hz = static_cast<double>(doppler);
                                     d_gnss_synchro->Acq_samplestamp_samples = samp_count;
 
-                                    // 5- Compute the test statistics and compare to the threshold
+                                    // Compute the test statistics and compare to the threshold
                                     //d_test_statistics = 2 * d_fft_size * d_mag / d_input_power;
                                     d_test_statistics = d_mag / d_input_power;
                                 }
