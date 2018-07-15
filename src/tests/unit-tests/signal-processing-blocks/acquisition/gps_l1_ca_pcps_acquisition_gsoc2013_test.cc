@@ -253,7 +253,8 @@ void GpsL1CaPcpsAcquisitionGSoC2013Test::config_1()
     config->set_property("Acquisition_1C.doppler_max", "10000");
     config->set_property("Acquisition_1C.doppler_step", "250");
     config->set_property("Acquisition_1C.bit_transition_flag", "false");
-    config->set_property("Acquisition_1C.dump", "false");
+    config->set_property("Acquisition_1C.dump", "true");
+    config->set_property("Acquisition_1C.dump_filename", "./test_acq1");
 }
 
 
@@ -341,6 +342,7 @@ void GpsL1CaPcpsAcquisitionGSoC2013Test::config_2()
     config->set_property("Acquisition_1C.doppler_step", "250");
     config->set_property("Acquisition_1C.bit_transition_flag", "false");
     config->set_property("Acquisition_1C.dump", "false");
+    config->set_property("Acquisition_1C.dump_filename", "./test_acq1");
 }
 
 
@@ -383,7 +385,8 @@ void GpsL1CaPcpsAcquisitionGSoC2013Test::process_message()
             // The term -5 is here to correct the additional delay introduced by the FIR filter
             double delay_error_chips = std::abs(static_cast<double>(expected_delay_chips) - static_cast<double>(gnss_synchro.Acq_delay_samples - 5) * 1023.0 / (static_cast<double>(fs_in) * 1e-3));
             double doppler_error_hz = std::abs(expected_doppler_hz - gnss_synchro.Acq_doppler_hz);
-
+            std::cout << "Expected delay: " << expected_delay_chips << std::endl;
+            std::cout << "Computed delay: " << static_cast<double>(gnss_synchro.Acq_delay_samples - 5) * 1023.0 / (static_cast<double>(fs_in) * 1e-3) << std::endl;
             mse_delay += std::pow(delay_error_chips, 2);
             mse_doppler += std::pow(doppler_error_hz, 2);
 
@@ -472,7 +475,7 @@ TEST_F(GpsL1CaPcpsAcquisitionGSoC2013Test, ValidationOfResults)
     boost::shared_ptr<GpsL1CaPcpsAcquisitionGSoC2013Test_msg_rx> msg_rx = GpsL1CaPcpsAcquisitionGSoC2013Test_msg_rx_make(channel_internal_queue);
 
     ASSERT_NO_THROW({
-        acquisition->set_channel(1);
+        acquisition->set_channel(0);
     }) << "Failure setting channel.";
 
     ASSERT_NO_THROW({
@@ -488,7 +491,7 @@ TEST_F(GpsL1CaPcpsAcquisitionGSoC2013Test, ValidationOfResults)
     }) << "Failure setting doppler_step.";
 
     ASSERT_NO_THROW({
-        acquisition->set_threshold(0.5);
+        acquisition->set_threshold(0.1);
     }) << "Failure setting threshold.";
 
     ASSERT_NO_THROW({
@@ -496,7 +499,6 @@ TEST_F(GpsL1CaPcpsAcquisitionGSoC2013Test, ValidationOfResults)
         top_block->msg_connect(acquisition->get_right_block(), pmt::mp("events"), msg_rx, pmt::mp("events"));
     }) << "Failure connecting acquisition to the top_block.";
 
-    acquisition->init();
 
     ASSERT_NO_THROW({
         boost::shared_ptr<GenSignalSource> signal_source;
@@ -521,7 +523,7 @@ TEST_F(GpsL1CaPcpsAcquisitionGSoC2013Test, ValidationOfResults)
                 {
                     gnss_synchro.PRN = 20;  // This satellite is not visible
                 }
-
+            acquisition->init();
             acquisition->set_local_code();
             acquisition->set_state(1);  // Ensure that acquisition starts at the first sample
             start_queue();
@@ -591,7 +593,6 @@ TEST_F(GpsL1CaPcpsAcquisitionGSoC2013Test, ValidationOfResultsProbabilities)
         top_block->msg_connect(acquisition->get_right_block(), pmt::mp("events"), msg_rx, pmt::mp("events"));
     }) << "Failure connecting acquisition to the top_block.";
 
-    acquisition->init();
 
     ASSERT_NO_THROW({
         boost::shared_ptr<GenSignalSource> signal_source;
@@ -618,8 +619,9 @@ TEST_F(GpsL1CaPcpsAcquisitionGSoC2013Test, ValidationOfResultsProbabilities)
                 {
                     gnss_synchro.PRN = 20;  // This satellite is not visible
                 }
-
+            acquisition->init();
             acquisition->set_local_code();
+            acquisition->set_state(1);
 
             start_queue();
 

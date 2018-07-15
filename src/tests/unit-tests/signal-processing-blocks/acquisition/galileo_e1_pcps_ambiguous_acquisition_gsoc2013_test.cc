@@ -251,7 +251,8 @@ void GalileoE1PcpsAmbiguousAcquisitionGSoC2013Test::config_1()
     config->set_property("Acquisition_1B.threshold", "0.1");
     config->set_property("Acquisition_1B.doppler_max", "10000");
     config->set_property("Acquisition_1B.doppler_step", "250");
-    config->set_property("Acquisition_1B.dump", "false");
+    config->set_property("Acquisition_1B.dump", "true");
+    config->set_property("Acquisition_1B.dump_filename", "./acqgsoc");
 }
 
 
@@ -340,7 +341,8 @@ void GalileoE1PcpsAmbiguousAcquisitionGSoC2013Test::config_2()
     config->set_property("Acquisition_1B.pfa", "0.1");
     config->set_property("Acquisition_1B.doppler_max", "10000");
     config->set_property("Acquisition_1B.doppler_step", "250");
-    config->set_property("Acquisition_1B.dump", "false");
+    config->set_property("Acquisition_1B.dump", "true");
+    config->set_property("Acquisition_1B.dump_filename", "./acqgsoc");
 }
 
 
@@ -471,7 +473,7 @@ TEST_F(GalileoE1PcpsAmbiguousAcquisitionGSoC2013Test, ValidationOfResults)
     boost::shared_ptr<GalileoE1PcpsAmbiguousAcquisitionGSoC2013Test_msg_rx> msg_rx = GalileoE1PcpsAmbiguousAcquisitionGSoC2013Test_msg_rx_make(channel_internal_queue);
 
     ASSERT_NO_THROW({
-        acquisition->set_channel(1);
+        acquisition->set_channel(0);
     }) << "Failure setting channel.";
 
     ASSERT_NO_THROW({
@@ -487,14 +489,13 @@ TEST_F(GalileoE1PcpsAmbiguousAcquisitionGSoC2013Test, ValidationOfResults)
     }) << "Failure setting doppler_step.";
 
     ASSERT_NO_THROW({
-        acquisition->set_threshold(config->property("Acquisition_1B.threshold", 0.0));
+        acquisition->set_threshold(config->property("Acquisition_1B.threshold", 0.1));
     }) << "Failure setting threshold.";
 
     ASSERT_NO_THROW({
         acquisition->connect(top_block);
     }) << "Failure connecting acquisition to the top_block.";
 
-    acquisition->init();
 
     ASSERT_NO_THROW({
         boost::shared_ptr<GenSignalSource> signal_source;
@@ -520,7 +521,7 @@ TEST_F(GalileoE1PcpsAmbiguousAcquisitionGSoC2013Test, ValidationOfResults)
                 {
                     gnss_synchro.PRN = 20;  // This satellite is not visible
                 }
-
+            acquisition->init();
             acquisition->set_local_code();
             acquisition->set_state(1);
             start_queue();
@@ -556,7 +557,7 @@ TEST_F(GalileoE1PcpsAmbiguousAcquisitionGSoC2013Test, ValidationOfResultsProbabi
     boost::shared_ptr<GalileoE1PcpsAmbiguousAcquisitionGSoC2013Test_msg_rx> msg_rx = GalileoE1PcpsAmbiguousAcquisitionGSoC2013Test_msg_rx_make(channel_internal_queue);
 
     ASSERT_NO_THROW({
-        acquisition->set_channel(1);
+        acquisition->set_channel(0);
     }) << "Failure setting channel.";
 
     ASSERT_NO_THROW({
@@ -578,8 +579,6 @@ TEST_F(GalileoE1PcpsAmbiguousAcquisitionGSoC2013Test, ValidationOfResultsProbabi
     ASSERT_NO_THROW({
         acquisition->connect(top_block);
     }) << "Failure connecting acquisition to the top_block.";
-
-    acquisition->init();
 
     ASSERT_NO_THROW({
         boost::shared_ptr<GenSignalSource> signal_source;
@@ -607,7 +606,7 @@ TEST_F(GalileoE1PcpsAmbiguousAcquisitionGSoC2013Test, ValidationOfResultsProbabi
                 {
                     gnss_synchro.PRN = 20;  // This satellite is not visible
                 }
-
+            acquisition->init();
             acquisition->set_local_code();
             acquisition->set_state(1);
             start_queue();

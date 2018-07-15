@@ -37,6 +37,7 @@
 #include "glonass_l2_ca_pcps_acquisition.h"
 #include "gps_l2_m_pcps_acquisition.h"
 #include "gps_l5i_pcps_acquisition.h"
+#include "optimize_fft_size.h"
 #include "display.h"
 #include "gnuplot_i.h"
 #include "signal_generator_flags.h"
@@ -835,6 +836,7 @@ TEST_F(AcquisitionPerformanceTest, ROC)
                                         {
                                             fft_size = d_consumed_samples * 2;
                                         }
+                                    fft_size = optimize_fft_size(fft_size);
 
                                     for (int execution = 1; execution <= num_executions; execution++)
                                         {
@@ -932,15 +934,14 @@ TEST_F(AcquisitionPerformanceTest, ROC)
                                                 {
                                                     std::cout << doppler_estimation_error(i) << " ";
                                                 }
-                                            std::cout << std::endl;
+                                            std::cout << std::endl;*/
 
                                             std::cout << "Delay estimation error [chips]: ";
                                             for (int i = 0; i < num_executions - 1; i++)
                                                 {
                                                     std::cout << delay_estimation_error(i) << " ";
-
                                                 }
-                                            std::cout << std::endl; */
+                                            std::cout << std::endl;
                                         }
                                     if (k == 0)
                                         {

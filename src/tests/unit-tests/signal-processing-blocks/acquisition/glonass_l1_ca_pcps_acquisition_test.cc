@@ -248,9 +248,10 @@ TEST_F(GlonassL1CaPcpsAcquisitionTest, ValidationOfResults)
         acquisition->connect(top_block);
     }) << "Failure connecting acquisition to the top_block.";
 
+    acquisition->init();
     acquisition->set_local_code();
     acquisition->set_state(1);  // Ensure that acquisition starts at the first sample
-    acquisition->init();
+
 
     ASSERT_NO_THROW({
         std::string path = std::string(TEST_PATH);

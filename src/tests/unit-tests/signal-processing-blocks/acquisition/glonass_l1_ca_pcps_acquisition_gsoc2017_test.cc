@@ -504,8 +504,6 @@ TEST_F(GlonassL1CaPcpsAcquisitionGSoC2017Test, ValidationOfResults)
         top_block->msg_connect(acquisition->get_right_block(), pmt::mp("events"), msg_rx, pmt::mp("events"));
     }) << "Failure connecting acquisition to the top_block.";
 
-    acquisition->init();
-
     ASSERT_NO_THROW({
         std::shared_ptr<SignalGenerator> signal_generator = std::make_shared<SignalGenerator>(config.get(), "SignalSource", 0, 1, queue);
         std::shared_ptr<FreqXlatingFirFilter> filter = std::make_shared<FreqXlatingFirFilter>(config.get(), "InputFilter", 1, 1);
@@ -529,6 +527,7 @@ TEST_F(GlonassL1CaPcpsAcquisitionGSoC2017Test, ValidationOfResults)
                     gnss_synchro.PRN = 20;  // This satellite is not visible
                 }
 
+            acquisition->init();
             acquisition->set_local_code();
             acquisition->set_state(1);  // Ensure that acquisition starts at the first sample
             start_queue();

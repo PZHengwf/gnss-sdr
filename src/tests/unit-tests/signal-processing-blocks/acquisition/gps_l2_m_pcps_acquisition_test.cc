@@ -51,6 +51,7 @@
 #include "gnuplot_i.h"
 #include "test_flags.h"
 #include "acquisition_dump_reader.h"
+#include "optimize_fft_size.h"
 #include "gps_l2_m_pcps_acquisition.h"
 #include "GPS_L2C.h"
 
@@ -180,7 +181,7 @@ void GpsL2MPcpsAcquisitionTest::plot_grid()
     unsigned int sat = static_cast<unsigned int>(gnss_synchro.PRN);
 
     unsigned int samples_per_code = static_cast<unsigned int>(floor(static_cast<double>(sampling_frequency_hz) / (GPS_L2_M_CODE_RATE_HZ / static_cast<double>(GPS_L2_M_CODE_LENGTH_CHIPS))));
-    acquisition_dump_reader acq_dump(basename, sat, doppler_max, doppler_step, samples_per_code, 1);
+    acquisition_dump_reader acq_dump(basename, sat, doppler_max, doppler_step, optimize_fft_size(samples_per_code), 1);
     if (!acq_dump.read_binary_acq()) std::cout << "Error reading files" << std::endl;
 
     std::vector<int> *doppler = &acq_dump.doppler;

@@ -50,6 +50,7 @@
 #include "gnuplot_i.h"
 #include "test_flags.h"
 #include "acquisition_dump_reader.h"
+#include "optimize_fft_size.h"
 #include "galileo_e1_pcps_ambiguous_acquisition.h"
 #include "Galileo_E1.h"
 
@@ -165,6 +166,8 @@ void GalileoE1PcpsAmbiguousAcquisitionTest::init()
     config->set_property("Acquisition_1B.doppler_step", std::to_string(doppler_step));
     config->set_property("Acquisition_1B.repeat_satellite", "false");
     config->set_property("Acquisition_1B.cboc", "true");
+    config->set_property("Acquisition_1B.dump", "true");
+    config->set_property("Acquisition_1B.dump_filename", "./acq1b");
 }
 
 
@@ -175,7 +178,7 @@ void GalileoE1PcpsAmbiguousAcquisitionTest::plot_grid()
     unsigned int sat = static_cast<unsigned int>(gnss_synchro.PRN);
 
     unsigned int samples_per_code = static_cast<unsigned int>(round(4000000 / (Galileo_E1_CODE_CHIP_RATE_HZ / Galileo_E1_B_CODE_LENGTH_CHIPS)));  // !!
-    acquisition_dump_reader acq_dump(basename, sat, doppler_max, doppler_step, samples_per_code);
+    acquisition_dump_reader acq_dump(basename, sat, doppler_max, doppler_step, optimize_fft_size(samples_per_code));
 
     if (!acq_dump.read_binary_acq()) std::cout << "Error reading files" << std::endl;
 
@@ -303,7 +306,7 @@ TEST_F(GalileoE1PcpsAmbiguousAcquisitionTest, ValidationOfResults)
     }) << "Failure setting gnss_synchro.";
 
     ASSERT_NO_THROW({
-        acquisition->set_threshold(config->property("Acquisition_1B.threshold", 1e-9));
+        acquisition->set_threshold(config->property("Acquisition_1B.threshold", 1e-2));
     }) << "Failure setting threshold.";
 
     ASSERT_NO_THROW({
@@ -327,8 +330,8 @@ TEST_F(GalileoE1PcpsAmbiguousAcquisitionTest, ValidationOfResults)
         top_block->msg_connect(acquisition->get_right_block(), pmt::mp("events"), msg_rx, pmt::mp("events"));
     }) << "Failure connecting the blocks of acquisition test.";
 
-    acquisition->set_local_code();
     acquisition->init();
+    acquisition->set_local_code();
     acquisition->reset();
     acquisition->set_state(1);
 

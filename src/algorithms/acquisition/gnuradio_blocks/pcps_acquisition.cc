@@ -34,6 +34,7 @@
  */
 
 #include "pcps_acquisition.h"
+#include "optimize_fft_size.h"
 #include "GPS_L1_CA.h"         // for GPS_TWO_PI
 #include "GLONASS_L1_L2_CA.h"  // for GLONASS_TWO_PI"
 #include <glog/logging.h>
@@ -73,7 +74,24 @@ pcps_acquisition::pcps_acquisition(const Acq_Conf& conf_) : gr::block("pcps_acqu
         {
             d_fft_size = d_consumed_samples * 2;
         }
-    //d_fft_size = next power of two?  ////
+
+    // COD:
+    // Experimenting with the overlap/save technique for handling bit transitions
+    // The problem: Circular correlation is asynchronous with the received code.
+    // In effect the first code phase used in the correlation is the current
+    // estimate of the code phase at the start of the input buffer. If this is 1/2
+    // of the code period a bit transition would move all the signal energy into
+    // adjacent frequency bands at +/- 1/T where T is the integration time.
+    //
+    // We can avoid this by doing linear correlation, effectively doubling the
+    // size of the input buffer and padding the code with zeros.
+    if (acq_parameters.bit_transition_flag)
+        {
+            d_fft_size = d_consumed_samples * 2;
+            acq_parameters.max_dwells = 1;  // Activation of acq_parameters.bit_transition_flag invalidates the value of acq_parameters.max_dwells
+        }
+
+    d_fft_size = optimize_fft_size(d_fft_size);
     d_mag = 0;
     d_input_power = 0.0;
     d_num_doppler_bins = 0;
@@ -89,22 +107,6 @@ pcps_acquisition::pcps_acquisition(const Acq_Conf& conf_) : gr::block("pcps_acqu
     else
         {
             d_cshort = true;
-        }
-
-    // COD:
-    // Experimenting with the overlap/save technique for handling bit trannsitions
-    // The problem: Circular correlation is asynchronous with the received code.
-    // In effect the first code phase used in the correlation is the current
-    // estimate of the code phase at the start of the input buffer. If this is 1/2
-    // of the code period a bit transition would move all the signal energy into
-    // adjacent frequency bands at +/- 1/T where T is the integration time.
-    //
-    // We can avoid this by doing linear correlation, effectively doubling the
-    // size of the input buffer and padding the code with zeros.
-    if (acq_parameters.bit_transition_flag)
-        {
-            d_fft_size = d_consumed_samples * 2;
-            acq_parameters.max_dwells = 1;  // Activation of acq_parameters.bit_transition_flag invalidates the value of acq_parameters.max_dwells
         }
 
     d_tmp_buffer = static_cast<float*>(volk_gnsssdr_malloc(d_fft_size * sizeof(float), volk_gnsssdr_get_alignment()));
@@ -185,7 +187,7 @@ pcps_acquisition::~pcps_acquisition()
 
 void pcps_acquisition::set_local_code(std::complex<float>* code)
 {
-    // reset the intermediate frequency
+    // Reset the intermediate frequency
     d_old_freq = 0;
     // This will check if it's fdma, if yes will update the intermediate frequency and the doppler grid
     if (is_fdma())
@@ -347,8 +349,8 @@ void pcps_acquisition::set_state(int state)
 
 void pcps_acquisition::send_positive_acquisition()
 {
-    // 6.1- Declare positive acquisition using a message port
-    //0=STOP_CHANNEL 1=ACQ_SUCCEES 2=ACQ_FAIL
+    // Declare positive acquisition using a message port
+    // 0=STOP_CHANNEL 1=ACQ_SUCCEES 2=ACQ_FAIL
     DLOG(INFO) << "positive acquisition"
                << ", satellite " << d_gnss_synchro->System << " " << d_gnss_synchro->PRN
                << ", sample_stamp " << d_sample_counter
@@ -365,8 +367,8 @@ void pcps_acquisition::send_positive_acquisition()
 
 void pcps_acquisition::send_negative_acquisition()
 {
-    // 6.2- Declare negative acquisition using a message port
-    //0=STOP_CHANNEL 1=ACQ_SUCCEES 2=ACQ_FAIL
+    // Declare negative acquisition using a message port
+    // 0=STOP_CHANNEL 1=ACQ_SUCCEES 2=ACQ_FAIL
     DLOG(INFO) << "negative acquisition"
                << ", satellite " << d_gnss_synchro->System << " " << d_gnss_synchro->PRN
                << ", sample_stamp " << d_sample_counter
@@ -479,7 +481,20 @@ float pcps_acquisition::max_to_input_power_statistic(uint32_t& indext, int& dopp
                     index_time = tmp_intex_t;
                 }
         }
-    indext = index_time;
+
+    /* std::cout << "index_time: " << index_time << std::endl;
+    std::cout << "d_consumed_samples: " << d_consumed_samples << std::endl;
+    std::cout << "acq_parameters.sampled_ms: " << acq_parameters.sampled_ms << std::endl;
+    std::cout << "acq_parameters.ms_per_code: " << acq_parameters.sampled_ms << std::endl;
+    std::cout << "d_fft_size: " << d_fft_size << std::endl; */
+    if (acq_parameters.sampled_ms == acq_parameters.ms_per_code)
+        {
+            indext = index_time;
+        }
+    else
+        {
+            indext = static_cast<uint32_t>(index_time + acq_parameters.samples_per_code - (d_fft_size - d_consumed_samples * 2));
+        }
     if (!d_step_two)
         {
             doppler = -static_cast<int>(doppler_max) + doppler_step * static_cast<int>(index_doppler);
@@ -516,8 +531,19 @@ float pcps_acquisition::first_vs_second_peak_statistic(uint32_t& indext, int& do
                     index_time = tmp_intex_t;
                 }
         }
-    indext = index_time;
-
+    /* std::cout << "index_time: " << index_time << std::endl;
+    std::cout << "d_consumed_samples: " << d_consumed_samples << std::endl;
+    std::cout << "acq_parameters.sampled_ms: " << acq_parameters.sampled_ms << std::endl;
+    std::cout << "acq_parameters.ms_per_code: " << acq_parameters.sampled_ms << std::endl;
+    std::cout << "d_fft_size: " << d_fft_size << std::endl; */
+    if (acq_parameters.sampled_ms == acq_parameters.ms_per_code)
+        {
+            indext = index_time;
+        }
+    else
+        {
+            indext = static_cast<uint32_t>(index_time + acq_parameters.samples_per_code - (d_fft_size - d_consumed_samples * 2));
+        }
     if (!d_step_two)
         {
             doppler = -static_cast<int>(doppler_max) + doppler_step * static_cast<int>(index_doppler);
@@ -600,7 +626,7 @@ void pcps_acquisition::acquisition_core(unsigned long int samp_count)
             // Compute the input signal power estimation
             volk_32fc_magnitude_squared_32f(d_tmp_buffer, in, d_fft_size);
             volk_32f_accumulator_s32f(&d_input_power, d_tmp_buffer, d_fft_size);
-            d_input_power /= static_cast<float>(d_fft_size);
+            d_input_power /= static_cast<float>(d_consumed_samples);
         }
 
     // Doppler frequency grid loop
@@ -658,7 +684,7 @@ void pcps_acquisition::acquisition_core(unsigned long int samp_count)
                 {
                     volk_32fc_x2_multiply_32fc(d_fft_if->get_inbuf(), in, d_grid_doppler_wipeoffs_step_two[doppler_index], d_fft_size);
 
-                    // 3- Perform the FFT-based convolution  (parallel time search)
+                    // Perform the FFT-based convolution  (parallel time search)
                     // Compute the FFT of the carrier wiped--off incoming signal
                     d_fft_if->execute();
 
@@ -821,7 +847,7 @@ int pcps_acquisition::general_work(int noutput_items __attribute__((unused)),
         {
         case 0:
             {
-                //restart acquisition variables
+                // Restart acquisition variables
                 d_gnss_synchro->Acq_delay_samples = 0.0;
                 d_gnss_synchro->Acq_doppler_hz = 0.0;
                 d_gnss_synchro->Acq_samplestamp_samples = 0;

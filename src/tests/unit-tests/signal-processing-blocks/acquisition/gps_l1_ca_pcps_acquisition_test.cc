@@ -51,6 +51,7 @@
 #include "GPS_L1_CA.h"
 #include "test_flags.h"
 #include "acquisition_dump_reader.h"
+#include "optimize_fft_size.h"
 #include "gps_l1_ca_pcps_acquisition.h"
 
 
@@ -175,8 +176,8 @@ void GpsL1CaPcpsAcquisitionTest::plot_grid()
     std::string basename = "./tmp-acq-gps1/acquisition_G_1C";
     unsigned int sat = static_cast<unsigned int>(gnss_synchro.PRN);
 
-    unsigned int samples_per_code = static_cast<unsigned int>(round(4000000 / (GPS_L1_CA_CODE_RATE_HZ / GPS_L1_CA_CODE_LENGTH_CHIPS)));  // !!
-    acquisition_dump_reader acq_dump(basename, sat, doppler_max, doppler_step, samples_per_code, 1);
+    unsigned int samples_per_code = 4000;  // !!
+    acquisition_dump_reader acq_dump(basename, sat, doppler_max, doppler_step, optimize_fft_size(samples_per_code), 1);
 
     if (!acq_dump.read_binary_acq()) std::cout << "Error reading files" << std::endl;
 
@@ -227,7 +228,7 @@ void GpsL1CaPcpsAcquisitionTest::plot_grid()
     std::string data_str = "./tmp-acq-gps1";
     if (boost::filesystem::exists(data_str))
         {
-            boost::filesystem::remove_all(data_str);
+            //boost::filesystem::remove_all(data_str);
         }
 }
 
@@ -329,9 +330,9 @@ TEST_F(GpsL1CaPcpsAcquisitionTest, ValidationOfResults)
         top_block->msg_connect(acquisition->get_right_block(), pmt::mp("events"), msg_rx, pmt::mp("events"));
     }) << "Failure connecting the blocks of acquisition test.";
 
+    acquisition->init();
     acquisition->set_local_code();
     acquisition->set_state(1);  // Ensure that acquisition starts at the first sample
-    acquisition->init();
 
     EXPECT_NO_THROW({
         start = std::chrono::system_clock::now();

@@ -499,8 +499,6 @@ TEST_F(GlonassL2CaPcpsAcquisitionTest, ValidationOfResults)
         top_block->msg_connect(acquisition->get_right_block(), pmt::mp("events"), msg_rx, pmt::mp("events"));
     }) << "Failure connecting acquisition to the top_block.";
 
-    acquisition->init();
-
     ASSERT_NO_THROW({
         boost::shared_ptr<GenSignalSource> signal_source;
         SignalGenerator* signal_generator = new SignalGenerator(config.get(), "SignalSource", 0, 1, queue);
@@ -524,7 +522,7 @@ TEST_F(GlonassL2CaPcpsAcquisitionTest, ValidationOfResults)
                 {
                     gnss_synchro.PRN = 20;  // This satellite is not visible
                 }
-
+            acquisition->init();
             acquisition->set_local_code();
             acquisition->set_state(1);  // Ensure that acquisition starts at the first sample
             start_queue();
